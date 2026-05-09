@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    function isValidRaffle(data) {
+      return data.keys().hasAll(['name', 'ownerId', 'createdAt']) 
+        && data.keys().size() == 3
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.ownerId == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll(['buyerName', 'numbers', 'createdAt'])
+        && data.keys().size() == 3
+        && data.buyerName is string && data.buyerName.size() > 0 && data.buyerName.size() <= 100
+        && data.numbers is string && data.numbers.size() > 0 && data.numbers.size() <= 500
+        && data.createdAt == request.time;
+    }
+
+    match /raffles/{raffleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(raffleId) && isValidRaffle(request.resource.data);
+      allow update: if isOwner(resource.data.ownerId) 
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow delete: if isOwner(resource.data.ownerId);
+
+      match /tickets/{ticketId} {
+        allow read: if isSignedIn();
+        allow create: if isOwner(get(/databases/$(database)/documents/raffles/$(raffleId)).data.ownerId)
+          && isValidId(ticketId) && isValidTicket(request.resource.data);
+        allow update: if isOwner(get(/databases/$(database)/documents/raffles/$(raffleId)).data.ownerId)
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isOwner(get(/databases/$(database)/documents/raffles/$(raffleId)).data.ownerId);
+      }
+    }
+  }
+}

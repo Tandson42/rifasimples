@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Raffle": {
+      "title": "Raffle",
+      "description": "A simplified raffle record.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the raffle."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who created the raffle."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the raffle was created."
+        }
+      },
+      "required": ["name", "ownerId", "createdAt"]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "A ticket purchased for a raffle.",
+      "type": "object",
+      "properties": {
+        "buyerName": {
+          "type": "string",
+          "description": "Name of the buyer."
+        },
+        "numbers": {
+          "type": "string",
+          "description": "The numbers assigned to this buyer (comma separated)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the ticket was issued."
+        }
+      },
+      "required": ["buyerName", "numbers", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/raffles/{raffleId}": {
+      "schema": "Raffle",
+      "description": "Collection of all raffles."
+    },
+    "/raffles/{raffleId}/tickets/{ticketId}": {
+      "schema": "Ticket",
+      "description": "Subcollection of tickets for a raffle."
+    }
+  }
+}
